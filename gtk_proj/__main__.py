@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -9,7 +11,7 @@ class Application(Gtk.Application):
     def on_activate(self, _):
         win = Window(application=self)
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_path("style.css")
+        css_provider.load_from_path(str(Path(__file__).parent/'style.css'))
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css_provider,
                                                   Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         win.set_css_classes(['window'])

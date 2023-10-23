@@ -19,19 +19,21 @@ class Window(Gtk.ApplicationWindow):
         self.button_pressed = False
         self.fig = Figure(figsize=(16, 9), dpi=100, constrained_layout=False)
         self.ax = self.fig.add_subplot()
+        self.fig.set_facecolor('#ebebeb')
         self.line = None
 
         sw = Gtk.ScrolledWindow(margin_top=10, margin_bottom=10,
                             margin_start=10, margin_end=10)
+        hb = Gtk.HeaderBar()
+        hb.set_show_title_buttons(False)
+
+        self.set_titlebar(hb)
 
         self.set_child(sw)
         self.ani = None
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, )
         sw.set_child(vbox)
-
-        box = Gtk.Box(spacing=5)
-        vbox.append(box)
 
         button_add_point = Gtk.Button()
         button_add_point.set_label("Добавить")
@@ -62,7 +64,7 @@ class Window(Gtk.ApplicationWindow):
 
         controls = (button_add_point, self.edit_x, self.edit_y, button_quit, button_animation_show, button_animation_hide)
         for c in controls:
-            box.append(c)
+            hb.pack_start(c)
 
         self.canvas = FigureCanvas(self.fig)
         self.canvas.set_size_request(800, 600)
