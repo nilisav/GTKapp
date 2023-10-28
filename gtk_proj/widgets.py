@@ -11,10 +11,18 @@ from sympy import *
 
 from gtk_proj.model import PlotData
 
+class Confirmation(Gtk.MessageDialog):
+    def __init__(self):
+        Gtk.MessageDialog.__init__(self)
+        self.set_markup('<b>Вы уверены?</b>')
+        self.add_button('да', 1)
+        self.add_button('нет', 0)
+        #  'Действительно выйти?'
+
 class Window(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         Gtk.ApplicationWindow.__init__(self, *args, **kwargs)
-        app = kwargs['application']
+        self.app = kwargs['application']
 
         self.button_pressed = False
         self.fig = Figure(figsize=(16, 9), dpi=100, constrained_layout=False)
@@ -24,16 +32,15 @@ class Window(Gtk.ApplicationWindow):
 
         sw = Gtk.ScrolledWindow(margin_top=10, margin_bottom=10,
                             margin_start=10, margin_end=10)
-        hb = Gtk.HeaderBar()
-        hb.set_show_title_buttons(False)
-
-        self.set_titlebar(hb)
 
         self.set_child(sw)
         self.ani = None
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, )
         sw.set_child(vbox)
+
+        box = Gtk.Box(spacing=5)
+        vbox.append(box)
 
         button_add_point = Gtk.Button()
         button_add_point.set_label("Добавить")
@@ -57,18 +64,34 @@ class Window(Gtk.ApplicationWindow):
 
         for edit in {self.edit_x, self.edit_y}:
             edit.set_adjustment(Gtk.Adjustment(upper=100, step_increment=1, page_increment=10))
+        #
+        # button_quit = Gtk.Button()
+        # button_quit.set_label("Выйти")
+        # button_quit.connect('clicked', lambda x: app.quit())
 
-        button_quit = Gtk.Button()
-        button_quit.set_label("Выйти")
-        button_quit.connect('clicked', lambda x: app.quit())
-
-        controls = (button_add_point, self.edit_x, self.edit_y, button_quit, button_animation_show, button_animation_hide)
+        controls = (button_add_point, self.edit_x, self.edit_y, button_animation_show, button_animation_hide)
         for c in controls:
-            hb.pack_start(c)
+            box.append(c)
 
         self.canvas = FigureCanvas(self.fig)
         self.canvas.set_size_request(800, 600)
         vbox.append(self.canvas)
+
+        self.connect('close-request', self.handle_exit)
+
+    def handle_exit(self, _):
+        dialog = Confirmation()  # прицепил к классу метод __del__, первый объект умирает на второй
+        # попытке выйти. Т.е. течь не должно, но чуть лишней памяти держит
+        dialog.set_transient_for(self)
+        dialog.show()
+        dialog.connect('response', self.exit)
+        return True
+
+    def exit(self, widget, response):
+        # print(widget, response)
+        if response == 1:
+            self.app.quit()
+        widget.destroy()
 
     def add_point(self, *args, **kwargs):
         self.data.add_point(self.edit_x.get_value(), self.edit_y.get_value())
