@@ -1,4 +1,13 @@
 .window {
-    background: #ebebeb;
+    background-color: #ebebeb;
     color: black;
+}
+
+.scroll {
+    background-color: #ebebeb;
+    padding: 10px;
+}
+
+.view {
+    background-color: #ebebeb;
 }

@@ -1,6 +1,6 @@
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 from matplotlib.backends.backend_gtk4agg import \
     FigureCanvasGTK4Agg as FigureCanvas
@@ -8,8 +8,10 @@ from matplotlib.figure import Figure
 import matplotlib.animation as animation
 import numpy as np
 from sympy import *
+from pathlib import Path
 
 from gtk_proj.model import PlotData
+from gtk_proj.tree import view
 
 class Confirmation(Gtk.MessageDialog):
     def __init__(self):
@@ -22,7 +24,12 @@ class Confirmation(Gtk.MessageDialog):
 class Window(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         Gtk.ApplicationWindow.__init__(self, *args, **kwargs)
-        self.app = kwargs['application']
+
+        notebook = Gtk.Notebook()
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_path(str(Path(__file__).parent / 'style.css'))
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css_provider,
+                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
         self.button_pressed = False
         self.fig = Figure(figsize=(16, 9), dpi=100, constrained_layout=False)
@@ -30,10 +37,10 @@ class Window(Gtk.ApplicationWindow):
         self.fig.set_facecolor('#ebebeb')
         self.line = None
 
-        sw = Gtk.ScrolledWindow(margin_top=10, margin_bottom=10,
-                            margin_start=10, margin_end=10)
-
-        self.set_child(sw)
+        sw = Gtk.ScrolledWindow()
+        tab_label = Gtk.Label()
+        tab_label.set_text("График")
+        notebook.append_page(sw, tab_label)
         self.ani = None
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, )
@@ -41,6 +48,14 @@ class Window(Gtk.ApplicationWindow):
 
         box = Gtk.Box(spacing=5)
         vbox.append(box)
+
+        tab_label = Gtk.Label()
+        tab_label.set_text("JSON")
+        notebook.append_page(view, tab_label)
+        view.set_css_classes(['view'])
+        view.show()
+
+        sw.set_css_classes(['scroll'])
 
         button_add_point = Gtk.Button()
         button_add_point.set_label("Добавить")
@@ -77,19 +92,35 @@ class Window(Gtk.ApplicationWindow):
         self.canvas.set_size_request(800, 600)
         vbox.append(self.canvas)
 
+        page = 0
+        if Path('user_cache_dir.toml').exists():
+            with open(Path('user_cache_dir.toml'), 'r') as f:
+                page = int(f.read())
+
+        notebook.set_css_classes(['window'])
+        notebook.set_current_page(page)
+        self.notebook = notebook
+
+        self.set_child(notebook)
+        self.show()
+
+        self.app = kwargs['application']
+
         self.connect('close-request', self.handle_exit)
 
     def handle_exit(self, _):
-        dialog = Confirmation()  # прицепил к классу метод __del__, первый объект умирает на второй
-        # попытке выйти. Т.е. течь не должно, но чуть лишней памяти держит
+        dialog = Confirmation()
         dialog.set_transient_for(self)
-        dialog.show()
+        dialog.present()
         dialog.connect('response', self.exit)
         return True
 
     def exit(self, widget, response):
         # print(widget, response)
         if response == 1:
+            f = open(Path('user_cache_dir.toml'), 'w+')
+            f.write(str(self.notebook.get_current_page()))
+            f.close()
             self.app.quit()
         widget.destroy()
 
